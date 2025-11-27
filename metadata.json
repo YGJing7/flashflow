@@ -1,5 +1,5 @@
 {
   "name": "FlashFlow",
-  "description": "A premium, gesture-based flashcard application for mobile devices. Supports multilingual input, custom styling, Excel import, and AI-powered card generation.",
+  "description": "A premium, gesture-based flashcard application for mobile devices. Supports multilingual input, custom styling, and Excel import.",
   "requestFramePermissions": []
 }

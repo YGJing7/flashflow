@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Upload, Settings, Wand2, Type, Palette, Layers, Download } from 'lucide-react';
+import { X, Upload, Settings, Type, Palette, Layers, Download } from 'lucide-react';
 import { AppSettings, CardData, AVAILABLE_FONTS } from '../types';
 import { parseExcelFile } from '../services/excelService';
-import { GoogleGenAI, Type as GenAiType } from '@google/genai';
 
 interface SettingsPanelProps {
   isOpen: boolean;
@@ -17,8 +16,6 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   isOpen, onClose, settings, setSettings, setCards, initialTab = 'style'
 }) => {
   const [activeTab, setActiveTab] = useState<'style' | 'import'>(initialTab);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [aiPrompt, setAiPrompt] = useState('');
 
   // Reset tab when opening
   useEffect(() => {
@@ -40,58 +37,6 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
     }
   };
 
-  const handleAiGenerate = async () => {
-    if (!aiPrompt) return;
-    if (!process.env.API_KEY) {
-        alert("未检测到 API Key。");
-        return;
-    }
-
-    setIsGenerating(true);
-    try {
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: `Generate 10 flashcards about: ${aiPrompt}. Return a JSON array.`,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: GenAiType.ARRAY,
-                    items: {
-                        type: GenAiType.OBJECT,
-                        properties: {
-                            front: { type: GenAiType.STRING },
-                            back: { type: GenAiType.STRING },
-                            tag: { type: GenAiType.STRING }
-                        }
-                    }
-                }
-            }
-        });
-
-        const text = response.text;
-        if (text) {
-            const rawCards = JSON.parse(text);
-            const newCards: CardData[] = rawCards.map((c: any, i: number) => ({
-                id: `ai-${Date.now()}-${i}`,
-                front: c.front,
-                back: c.back,
-                tag: c.tag || 'AI 生成',
-            }));
-            setCards(prev => [...prev, ...newCards]);
-            setAiPrompt('');
-            alert(`成功生成 ${newCards.length} 张卡片!`);
-        }
-    } catch (e) {
-        console.error(e);
-        alert("生成失败，请重试。");
-    } finally {
-        setIsGenerating(false);
-    }
-  };
-
-  // Prevent rendering if not open, BUT do not use early return before hooks
-  // Since we already called hooks above, we can just return null here or wrap JSX
   if (!isOpen) return null;
 
   return (
@@ -120,7 +65,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             onClick={() => setActiveTab('import')}
             className={`flex-1 py-3 font-medium text-sm transition-colors ${activeTab === 'import' ? 'text-primary border-b-2 border-primary' : 'text-gray-500'}`}
           >
-            导入与 AI
+            导入
           </button>
         </div>
 
@@ -209,32 +154,6 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   <span className="text-sm font-medium text-gray-600">选择文件</span>
                   <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} className="hidden" />
                 </label>
-              </div>
-
-              {/* AI Generation */}
-              <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
-                <h3 className="font-semibold text-indigo-900 mb-2 flex items-center gap-2">
-                  <Wand2 className="w-4 h-4 text-indigo-600" /> AI 智能生成
-                </h3>
-                <p className="text-xs text-indigo-700 mb-4">
-                  输入你想学习的主题，AI 将自动为你生成一组卡片。
-                </p>
-                <div className="flex gap-2">
-                  <input 
-                    type="text" 
-                    value={aiPrompt}
-                    onChange={(e) => setAiPrompt(e.target.value)}
-                    placeholder="例如：日语 N5 核心词汇"
-                    className="flex-1 p-2 rounded-lg border border-indigo-200 text-sm focus:ring-2 focus:ring-indigo-400 outline-none"
-                  />
-                  <button 
-                    onClick={handleAiGenerate}
-                    disabled={isGenerating || !aiPrompt}
-                    className="bg-indigo-600 text-white px-4 rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[80px]"
-                  >
-                    {isGenerating ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : '生成'}
-                  </button>
-                </div>
               </div>
 
                {/* Template Download */}
