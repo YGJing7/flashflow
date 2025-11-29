@@ -5,6 +5,10 @@ import { SettingsPanel } from './components/SettingsPanel';
 import { AddCardModal } from './components/AddCardModal';
 import { CardData, AppSettings, DEFAULT_SETTINGS } from './types';
 
+// Storage Keys
+const STORAGE_KEY_CARDS = 'flashflow_cards_v1';
+const STORAGE_KEY_SETTINGS = 'flashflow_settings_v1';
+
 // Sample initial data
 const INITIAL_CARDS: CardData[] = [
   { id: '1', front: '你好', back: 'Hello (Nǐ hǎo)', tag: '中文', color: '#dbeafe' },
@@ -18,8 +22,29 @@ const INITIAL_CARDS: CardData[] = [
 ];
 
 const App: React.FC = () => {
-  const [cards, setCards] = useState<CardData[]>(INITIAL_CARDS);
-  const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
+  // Initialize Cards from LocalStorage
+  const [cards, setCards] = useState<CardData[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_CARDS);
+      return saved ? JSON.parse(saved) : INITIAL_CARDS;
+    } catch (error) {
+      console.error('Failed to load cards from storage', error);
+      return INITIAL_CARDS;
+    }
+  });
+
+  // Initialize Settings from LocalStorage
+  const [settings, setSettings] = useState<AppSettings>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_SETTINGS);
+      // Merge saved settings with default to ensure all keys exist (in case of updates)
+      return saved ? { ...DEFAULT_SETTINGS, ...JSON.parse(saved) } : DEFAULT_SETTINGS;
+    } catch (error) {
+      console.error('Failed to load settings from storage', error);
+      return DEFAULT_SETTINGS;
+    }
+  });
+
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settingsInitialTab, setSettingsInitialTab] = useState<'style' | 'import'>('style');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -28,6 +53,24 @@ const App: React.FC = () => {
   const [selectedTag, setSelectedTag] = useState<string>('All');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [lastAddedTag, setLastAddedTag] = useState<string>('');
+
+  // Persist Cards whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_CARDS, JSON.stringify(cards));
+    } catch (error) {
+      console.error('Failed to save cards to storage', error);
+    }
+  }, [cards]);
+
+  // Persist Settings whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(settings));
+    } catch (error) {
+      console.error('Failed to save settings to storage', error);
+    }
+  }, [settings]);
 
   // Filter logic
   const availableTags = useMemo(() => {
